@@ -39,6 +39,50 @@
 		</div>
 	</Modal>
 </template>
+<script>
+import { Modal } from '@nextcloud/vue/dist/Components/Modal'
+import axios from '@nextcloud/axios'
+import { generateUrl } from '@nextcloud/router'
+
+export default {
+	name: 'BoardSelector',
+	components: {
+		Modal,
+	},
+	data() {
+		return {
+			boards: [],
+			selectedBoard: null,
+			loading: true,
+			currentBoard: null,
+		}
+	},
+	computed: {
+		availableBoards() {
+			return this.boards.filter((board) => ('' + board.id !== '' + this.currentBoard))
+		},
+	},
+	beforeMount() {
+		this.fetchBoards()
+		this.currentBoard = window.location.hash.match(/\/boards\/([0-9]+)/)[1] || null
+	},
+	methods: {
+		fetchBoards() {
+			axios.get(generateUrl('/apps/deck/boards')).then((response) => {
+				this.boards = response.data
+				this.loading = false
+			})
+		},
+		close() {
+			this.$root.$emit('close')
+		},
+		select() {
+			this.$root.$emit('select', this.selectedBoard)
+		},
+	},
+
+}
+</script>
 <style scoped>
 	#modal-inner {
 		width: 90vw;
@@ -79,46 +123,3 @@
 	}
 
 </style>
-<script>
-import { Modal } from '@nextcloud/vue/dist/Components/Modal'
-import axios from '@nextcloud/axios'
-
-export default {
-	name: 'BoardSelector',
-	components: {
-		Modal,
-	},
-	data() {
-		return {
-			boards: [],
-			selectedBoard: null,
-			loading: true,
-			currentBoard: null,
-		}
-	},
-	computed: {
-		availableBoards() {
-			return this.boards.filter((board) => ('' + board.id !== '' + this.currentBoard))
-		},
-	},
-	beforeMount() {
-		this.fetchBoards()
-		this.currentBoard = window.location.hash.match(/\/boards\/([0-9]+)/)[1] || null
-	},
-	methods: {
-		fetchBoards() {
-			axios.get(OC.generateUrl('/apps/deck/boards')).then((response) => {
-				this.boards = response.data
-				this.loading = false
-			})
-		},
-		close() {
-			this.$root.$emit('close')
-		},
-		select() {
-			this.$root.$emit('select', this.selectedBoard)
-		},
-	},
-
-}
-</script>

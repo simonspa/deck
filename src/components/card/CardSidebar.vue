@@ -200,6 +200,7 @@ import MarkdownItTaskLists from 'markdown-it-task-lists'
 import { formatFileSize } from '@nextcloud/files'
 import relativeDate from '../../mixins/relativeDate'
 import AttachmentList from './AttachmentList'
+import { generateUrl } from '@nextcloud/router'
 
 const markdownIt = new MarkdownIt()
 markdownIt.use(MarkdownItTaskLists, { enabled: true, label: true, labelAfter: true })
@@ -275,7 +276,7 @@ export default {
 			}
 		},
 		attachmentUrl() {
-			return (attachment) => OC.generateUrl(`/apps/deck/cards/${attachment.cardId}/attachment/${attachment.id}`)
+			return (attachment) => generateUrl(`/apps/deck/cards/${attachment.cardId}/attachment/${attachment.id}`)
 		},
 		formattedFileSize() {
 			return (filesize) => formatFileSize(filesize)
