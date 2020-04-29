@@ -30,6 +30,7 @@ use OCA\Deck\BadRequestException;
 use OCA\Deck\Db\Acl;
 use OCA\Deck\Db\AssignedUsersMapper;
 use OCA\Deck\Db\BoardMapper;
+use OCA\Deck\Db\Card;
 use OCA\Deck\Db\CardMapper;
 use OCA\Deck\Db\ChangeHelper;
 use OCA\Deck\Db\LabelMapper;
@@ -38,6 +39,8 @@ use OCA\Deck\Db\StackMapper;
 use OCA\Deck\StatusException;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\GenericEvent;
+use OCP\IL10N;
+use OCA\Deck\Event\FTSEvent;
 
 class StackService {
 	private $stackMapper;
@@ -53,6 +56,7 @@ class StackService {
 	/** @var EventDispatcherInterface */
 	private $eventDispatcher;
 	private $changeHelper;
+	private $l10n;
 
 	public function __construct(
 		StackMapper $stackMapper,
@@ -66,7 +70,8 @@ class StackService {
 		AttachmentService $attachmentService,
 		ActivityManager $activityManager,
 		EventDispatcherInterface $eventDispatcher,
-		ChangeHelper $changeHelper
+		ChangeHelper $changeHelper,
+		IL10N $l10n
 	) {
 		$this->stackMapper = $stackMapper;
 		$this->boardMapper = $boardMapper;
@@ -80,6 +85,7 @@ class StackService {
 		$this->activityManager = $activityManager;
 		$this->eventDispatcher = $eventDispatcher;
 		$this->changeHelper = $changeHelper;
+		$this->l10n = $l10n;
 	}
 
 	private function enrichStackWithCards($stack, $since = -1) {
@@ -361,5 +367,94 @@ class StackService {
 		$this->changeHelper->boardChanged($stackToSort->getBoardId());
 
 		return $result;
+	}
+
+	/**
+	 * @param $id
+	 * @param $boardId
+	 * @return Stack
+	 * @throws StatusException
+	 * @throws BadRequestException
+	 */
+	public function clone($id, $boardId) {
+		if (is_numeric($id) === false) {
+			throw new BadRequestException('stack id must be a number');
+		}
+
+		$this->permissionService->checkPermission(null, $boardId, Acl::PERMISSION_MANAGE);
+		if ($this->boardService->isArchived(null, $boardId)) {
+			throw new StatusException('Operation not allowed. This board is archived.');
+		}
+
+		$stack = $this->stackMapper->find($id);
+
+		$newStack = new Stack();
+		$newStack->setTitle($stack->getTitle() . ' (' . $this->l10n->t('copy') . ')');
+		$newStack->setBoardId($boardId);
+		$newStack->setOrder($stack->getOrder() +1);
+		$newStack = $this->stackMapper->insert($newStack);
+
+		$cards = $this->cardMapper->findAll($id);
+		foreach ($cards as $card) {
+			$newCard = new Card();
+			$newCard->setTitle($card->getTitle());
+			$newCard->setStackId($card->getStackId());
+			$newCard->setType($card->getType());
+			$newCard->setOrder($card->getOrder());
+			$newCard->setOwner($card->getOwner());
+			$newCard->setDescription($card->getDescription());
+			$newCard->setDuedate($card->getDuedate());
+			$newCard = $this->cardMapper->insert($newCard);
+
+			$this->activityManager->triggerEvent(ActivityManager::DECK_OBJECT_CARD, $card, ActivityManager::SUBJECT_CARD_CREATE);
+			$this->changeHelper->cardChanged($card->getId(), false);
+
+			$this->eventDispatcher->dispatch(
+				'\OCA\Deck\Card::onCreate',
+				new FTSEvent(
+					null, ['id' => $card->getId(), 'card' => $card, 'userId' => $owner, 'stackId' => $stackId]
+				)
+			);
+		}
+
+		
+
+
+		/*
+		$labels = $this->labelMapper->findAll($id);
+		foreach ($labels as $label) {
+			$newLabel = new Label();
+			$newLabel->setTitle($label->getTitle());
+			$newLabel->setColor($label->getColor());
+			$newLabel->setBoardId($newBoard->getId());
+			$this->labelMapper->insert($newLabel);
+		}
+
+		$stacks = $this->stackMapper->findAll($id);
+		foreach ($stacks as $stack) {
+			$newStack = new Stack();
+			$newStack->setTitle($stack->getTitle());
+			$newStack->setBoardId($newBoard->getId());
+			$this->stackMapper->insert($newStack);
+		}
+		*/
+
+
+
+		$this->activityManager->triggerEvent(
+			ActivityManager::DECK_OBJECT_BOARD, $newStack, ActivityManager::SUBJECT_STACK_CREATE
+		);
+		$this->changeHelper->boardChanged($boardId);
+
+		$this->eventDispatcher->dispatch(
+			'\OCA\Deck\Stack::onCreate',
+			new GenericEvent(null, ['id' => $newStack->getId(), 'stack' => $newStack])
+		);
+
+
+		
+
+
+		return $newStack;
 	}
 }

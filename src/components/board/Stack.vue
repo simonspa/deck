@@ -43,6 +43,9 @@
 				<ActionButton icon="icon-delete" @click="deleteStack(stack)">
 					{{ t('deck', 'Delete list') }}
 				</ActionButton>
+				<ActionButton icon="icon-clone" @click="cloneStack(stack)">
+					{{ t('deck', 'Clone list') }}
+				</ActionButton>
 			</Actions>
 			<Actions v-if="canEdit && !showArchived">
 				<ActionButton icon="icon-add" @click.stop="showAddCard=true">
@@ -177,6 +180,9 @@ export default {
 		},
 		deleteStack(stack) {
 			this.$store.dispatch('deleteStack', stack)
+		},
+		cloneStack(stack) {
+			this.$store.dispatch('cloneStack', stack)
 		},
 		startEditing(stack) {
 			this.copiedStack = Object.assign({}, stack)
