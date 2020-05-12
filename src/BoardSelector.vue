@@ -80,7 +80,7 @@
 
 </style>
 <script>
-import { Modal } from '@nextcloud/vue/dist/Components/Modal'
+import { Modal } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
 
 export default {
