@@ -60,6 +60,11 @@
 
 					<template>
 						<div class="filter">
+							<Actions style="float: right;">
+								<ActionButton icon="icon-close" :disabled="!isFilterActive" @click="clearfilter">
+									{{ t('deck', 'Clear filter') }}
+								</ActionButton>
+							</Actions>
 							<h3>{{ t('deck', 'Filter by tag') }}</h3>
 							<div v-for="label in board.labels" :key="label.id" class="filter--item">
 								<input
@@ -218,8 +223,14 @@ export default {
 			}
 			return 'opacity: .5;'
 		},
-		filterOpacity() {
+		isFilterActive() {
 			if (this.filter.tags.length !== 0 || this.filter.users.length !== 0 || this.filter.due !== '') {
+				return true
+			}
+			return false
+		},
+		filterOpacity() {
+			if (this.isFilterActive) {
 				return 'opacity: 1;'
 			}
 			return 'opacity: .5;'
@@ -264,6 +275,11 @@ export default {
 			} else {
 				this.$router.push({ name: 'board.details' })
 			}
+		},
+		clearfilter() {
+			const filterReset = { tags: [], users: [], due: '' }
+			this.$store.dispatch('setFilter', { ...filterReset })
+			this.filter = filterReset
 		},
 	},
 }
