@@ -54,6 +54,11 @@
 						</div>
 					</transition>
 				</div>
+				<div v-if="!editing && compactMode" class="right">
+					<transition name="zoom">
+						<CardMenu :id="id" />
+					</transition>
+				</div>
 			</div>
 			<transition-group name="zoom"
 				tag="ul"
@@ -78,10 +83,11 @@ import CardBadges from './CardBadges'
 import Color from '../../mixins/color'
 import labelStyle from '../../mixins/labelStyle'
 import AttachmentDragAndDrop from '../AttachmentDragAndDrop'
+import CardMenu from './CardMenu'
 
 export default {
 	name: 'CardItem',
-	components: { CardBadges, AttachmentDragAndDrop },
+	components: { CardBadges, AttachmentDragAndDrop, CardMenu },
 	directives: {
 		ClickOutside,
 	},
